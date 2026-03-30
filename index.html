@@ -2,91 +2,69 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Panel de Control - GitHub</title>
+    <title>Acceso Seguro - NSUsuarios</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; padding-top: 50px; background-color: #eef2f3; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 350px; text-align: center; }
-        h2 { color: #333; margin-bottom: 20px; }
-        input { width: 100%; margin-bottom: 15px; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 6px; }
-        button { width: 100%; padding: 12px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.3s; }
-        
-        .btn-login { background-color: #2ea44f; color: white; }
-        .btn-login:hover { background-color: #2c974b; }
-        
-        .btn-reg { background-color: #0366d6; color: white; margin-top: 10px; }
-        .btn-reg:hover { background-color: #0255b3; }
-
-        .hidden { display: none; }
-        #msg { color: #d73a49; font-size: 14px; margin-top: 10px; }
-        .success-msg { color: #28a745 !important; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; padding-top: 80px; background-color: #f4f7f6; }
+        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 320px; text-align: center; }
+        h2 { color: #333; margin-bottom: 25px; }
+        input { width: 100%; margin-bottom: 15px; padding: 12px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+        button { width: 100%; padding: 12px; background: #2ea44f; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        button:hover { background: #2c974b; }
+        #error { color: #d73a49; font-size: 13px; margin-top: 15px; min-height: 18px; }
     </style>
 </head>
 <body>
 
-<div class="card" id="login-section">
+<div class="card" id="login-box">
     <h2>Iniciar Sesión</h2>
-    <input type="text" id="user-login" placeholder="Usuario">
-    <input type="password" id="pass-login" placeholder="Contraseña">
-    <button class="btn-login" onclick="intentarLogin()">Entrar al Sistema</button>
-    <p id="msg"></p>
+    <input type="email" id="email" placeholder="Correo electrónico">
+    <input type="password" id="pass" placeholder="Contraseña">
+    <button onclick="login()">Entrar al Sistema</button>
+    <p id="error"></p>
 </div>
 
-<div class="card hidden" id="admin-section">
-    <h2 id="welcome-txt">¡Bienvenido!</h2>
-    <p style="color: #666; font-size: 14px;">Panel de Administración de Usuarios</p>
-    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-    
-    <h3>Crear Nuevo Usuario</h3>
-    <input type="text" id="new-user" placeholder="Nombre del nuevo usuario">
-    <input type="password" id="new-pass" placeholder="Contraseña para él">
-    <button class="btn-reg" onclick="registrarNuevo()">Registrar y Guardar</button>
-    
-    <button style="margin-top: 30px; background: #f6f8fa; color: #555; border: 1px solid #d1d5da;" onclick="location.reload()">Cerrar Sesión</button>
-</div>
+<script type="module">
+  // Importamos las librerías necesarias directamente de la web
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-<script>
-    // Al cargar, nos aseguramos de que el primer usuario exista 
-    // (Si es la primera vez que entras, el sistema te crea uno por defecto: admin / 1234)
-    if (!localStorage.getItem('user_admin')) {
-        localStorage.setItem('user_admin', 'admin');
-        localStorage.setItem('pass_admin', '1234');
-    }
+  // TUS DATOS REALES DE CONFIGURACIÓN
+  const firebaseConfig = {
+    apiKey: "AIzaSyC76690rc5SKbN0kFFOOLsa-ua21VJ-8dI",
+    authDomain: "nsusuarios.firebaseapp.com",
+    projectId: "nsusuarios",
+    storageBucket: "nsusuarios.firebasestorage.app",
+    messagingSenderId: "753486575180",
+    appId: "1:753486575180:web:2bb95bf20ac3dafbf626e9"
+  };
 
-    function intentarLogin() {
-        const u = document.getElementById('user-login').value;
-        const p = document.getElementById('pass-login').value;
-        
-        // Buscamos en la "base de datos" local
-        const savedU = localStorage.getItem('user_' + u);
-        const savedP = localStorage.getItem('pass_' + u);
+  // Inicializar Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
 
-        if (u === savedU && p === savedP && u !== "") {
-            document.getElementById('login-section').classList.add('hidden');
-            document.getElementById('admin-section').classList.remove('hidden');
-            document.getElementById('welcome-txt').innerText = "Hola, " + u;
-        } else {
-            document.getElementById('msg').innerText = "Acceso denegado. Usuario o clave incorrecta.";
-        }
-    }
+  // Función de Login
+  window.login = function() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('pass').value;
+    const errorTxt = document.getElementById('error');
 
-    function registrarNuevo() {
-        const newUser = document.getElementById('new-user').value;
-        const newPass = document.getElementById('new-pass').value;
-        
-        if (newUser && newPass) {
-            // Guardamos el nuevo par en el LocalStorage
-            localStorage.setItem('user_' + newUser, newUser);
-            localStorage.setItem('pass_' + newUser, newPass);
-            
-            alert("Usuario '" + newUser + "' registrado con éxito. Ya puede iniciar sesión.");
-            
-            // Limpiamos los campos
-            document.getElementById('new-user').value = "";
-            document.getElementById('new-pass').value = "";
-        } else {
-            alert("Por favor escribe un nombre y contraseña.");
-        }
-    }
+    errorTxt.innerText = "Cargando...";
+
+    signInWithEmailAndPassword(auth, email, password)
+      .then((userCredential) => {
+        // ENTRADA EXITOSA: Aquí puedes poner a dónde quieres que vaya el usuario
+        document.body.innerHTML = `
+            <div class="card">
+                <h1 style="color: #2ea44f;">¡Bienvenido!</h1>
+                <p>Has iniciado sesión de forma segura.</p>
+                <button onclick="location.reload()" style="background: #0366d6;">Cerrar Sesión</button>
+            </div>`;
+      })
+      .catch((error) => {
+        console.error(error);
+        errorTxt.innerText = "Usuario o contraseña incorrectos.";
+      });
+  }
 </script>
 
 </body>
