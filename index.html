@@ -2,169 +2,125 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Dashboard de Seguridad - Settepi</title>
+    <title>Settepi - Dashboard de Seguridad</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #f4f7f6; }
-        .login-container { display: flex; justify-content: center; padding-top: 100px; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 350px; text-align: center; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
         input { width: 100%; margin-bottom: 15px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        .btn-blue { width: 100%; padding: 12px; background: #004a99; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         
-        /* Colores Corporativos: Azul y Amarillo */
-        .btn-principal { width: 100%; padding: 12px; background: #004a99; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .btn-principal:hover { background: #003366; }
-        
-        #dashboard { display: none; padding: 20px; max-width: 1000px; margin: auto; }
-        .header { background-color: #004a99; color: white; padding: 20px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-bottom: 6px solid #ffcc00; }
-        
-        .panel-admin { background: #fff9c4; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #fbc02d; display: none; }
-        .chart-container { background: white; padding: 20px; border-radius: 8px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
+        #dashboard { display: none; width: 90%; max-width: 800px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header { background: #004a99; color: white; padding: 15px; border-radius: 8px; border-bottom: 5px solid #ffcc00; margin-bottom: 20px; }
+        .admin-box { background: #fffde7; border: 1px solid #fbc02d; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
     </style>
 </head>
 <body>
 
-<div class="login-container" id="login-section">
-    <div class="card">
-        <h2 style="color: #004a99;">NSUsuarios</h2>
-        <p>Introduce tus credenciales para acceder al dashboard.</p>
-        <input type="email" id="email" placeholder="Correo electrónico">
-        <input type="password" id="pass" placeholder="Contraseña">
-        <button class="btn-principal" onclick="login()">Iniciar Sesión</button>
-        <p id="error" style="color: red; font-size: 13px; margin-top: 10px;"></p>
-    </div>
+<div id="login-section" class="card">
+    <h2 style="color: #004a99;">Settepi Login</h2>
+    <input type="email" id="email" placeholder="Correo @settepi.com">
+    <input type="password" id="pass" placeholder="Contraseña">
+    <button class="btn-blue" onclick="login()">Entrar al Dashboard</button>
+    <p id="error" style="color: red; font-size: 13px;"></p>
 </div>
 
 <div id="dashboard">
     <div class="header">
-        <div>
-            <h2 style="margin: 0;">Dashboard de Seguridad Semanal</h2>
-            <small>Settepi - Los Cabos, BCS</small>
-        </div>
-        <button onclick="location.reload()" style="background: #ffcc00; color: #333; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;">Cerrar Sesión</button>
+        <h2 style="margin: 0;">Score de Seguridad - Los Cabos</h2>
     </div>
 
-    <div class="panel-admin" id="admin-panel">
-        <h3 style="margin-top: 0;">⚙️ Panel de Actualización (Admin)</h3>
-        <label>Nuevo Score de Seguridad:</label><br>
-        <input type="number" id="nuevo-score" placeholder="Ej: 94" style="width: 150px; margin-top: 10px;">
-        <button onclick="guardarDatos()" style="width: auto; background: #2e7d32; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">Actualizar Score</button>
-        <span id="save-msg" style="margin-left: 10px; font-weight: bold;"></span>
+    <div id="admin-panel" class="admin-box">
+        <h4 style="margin-top: 0;">Panel de Actualización</h4>
+        <input type="number" id="nuevo-score" placeholder="Nuevo Score (0-100)" style="width: 150px;">
+        <button onclick="guardarDato()" style="padding: 10px; background: #2e7d32; color: white; border: none; border-radius: 5px; cursor: pointer;">Guardar</button>
     </div>
 
-    <div class="chart-container">
-        <h3>Puntuación Promedio de Operadores</h3>
-        <canvas id="miGrafica"></canvas>
-        <div id="status-container" class="status-badge"></div>
-    </div>
+    <canvas id="graficaSeguridad"></canvas>
+    <div id="status" style="margin-top: 15px; font-weight: bold; text-align: center; padding: 10px; border-radius: 5px;"></div>
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // CONFIGURACIÓN DE TU PROYECTO (Verifica que estos datos coincidan con tu Firebase)
-  const firebaseConfig = {
-    apiKey: "AIzaSyC76690rc5SKbN0kFFOOLsa-ua21VJ-8dI",
-    authDomain: "nsusuarios.firebaseapp.com",
-    projectId: "nsusuarios",
-    storageBucket: "nsusuarios.firebasestorage.app",
-    messagingSenderId: "753486575180",
-    appId: "1:753486575180:web:2bb95bf20ac3dafbf626e9"
-  };
+    // TUS LLAVES ACTUALIZADAS
+    const firebaseConfig = {
+        apiKey: "AIzaSyC76690rc5SKbN0kFFOOLsa-ua21VJ-8dI",
+        authDomain: "nsusuarios.firebaseapp.com",
+        projectId: "nsusuarios",
+        storageBucket: "nsusuarios.firebasestorage.app",
+        messagingSenderId: "753486575180",
+        appId: "1:753486575180:web:2bb95bf20ac3dafbf626e9"
+    };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  let miGrafica;
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    let chart;
 
-  // TU CORREO PARA ACTIVAR MODO ADMIN
-  const correoAdmin = "n.garcia@settepi.com"; 
+    window.login = function() {
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('pass').value;
 
-  window.login = function() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('pass').value;
+        signInWithEmailAndPassword(auth, email, password)
+            .then((user) => {
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                
+                // Si eres tú, mostramos el panel para escribir el score
+                if(email === "n.garcia@settepi.com") {
+                    document.getElementById('admin-panel').style.display = 'block';
+                }
+                initChart();
+            })
+            .catch(() => { document.getElementById('error').innerText = "Acceso denegado."; });
+    };
 
-    signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-
-        if(userCredential.user.email === correoAdmin) {
-            document.getElementById('admin-panel').style.display = 'block';
+    window.guardarDato = async function() {
+        const val = document.getElementById('nuevo-score').value;
+        if(val) {
+            await setDoc(doc(db, "seguridad", "semana_actual"), { score: Number(val) });
+            alert("¡Score actualizado exitosamente!");
         }
-        iniciarDashboard();
-      })
-      .catch((error) => {
-        document.getElementById('error').innerText = "Usuario o contraseña incorrectos.";
-      });
-  }
+    };
 
-  window.guardarDatos = async function() {
-    const score = document.getElementById('nuevo-score').value;
-    if(score) {
-        await setDoc(doc(db, "reportes", "semana_actual"), {
-            score: Number(score),
-            actualizado_por: correoAdmin,
-            ultima_fecha: new Date().toLocaleString()
+    function initChart() {
+        const ctx = document.getElementById('graficaSeguridad').getContext('2d');
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Score Semanal'],
+                datasets: [{ label: 'Puntos', data: [0], backgroundColor: '#004a99' }]
+            },
+            options: { scales: { y: { beginAtZero: true, max: 100 } } }
         });
-        document.getElementById('save-msg').style.color = "green";
-        document.getElementById('save-msg').innerText = "¡Datos guardados!";
-        setTimeout(() => document.getElementById('save-msg').innerText = "", 3000);
-    }
-  }
 
-  function iniciarDashboard() {
-    const ctx = document.getElementById('miGrafica').getContext('2d');
-    
-    miGrafica = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['Operadores'],
-            datasets: [{
-                label: 'Score de Seguridad',
-                data: [0],
-                backgroundColor: '#004a99',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            scales: { y: { beginAtZero: true, max: 100 } }
-        }
-    });
-
-    // Escuchar cambios en Firestore en tiempo real
-    onSnapshot(doc(db, "reportes", "semana_actual"), (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const scoreVal = data.score;
-            
-            miGrafica.data.datasets[0].data = [scoreVal];
-            
-            // Lógica de colores según tus rangos
-            const badge = document.getElementById('status-container');
-            if(scoreVal <= 86) {
-                miGrafica.data.datasets[0].backgroundColor = '#d32f2f'; // Crítico
-                badge.innerText = "ESTADO: CRÍTICO";
-                badge.style.backgroundColor = "#ffcdd2";
-                badge.style.color = "#b71c1c";
-            } else if(scoreVal >= 93) {
-                miGrafica.data.datasets[0].backgroundColor = '#2e7d32'; // Bueno
-                badge.innerText = "ESTADO: BUENO";
-                badge.style.backgroundColor = "#c8e6c9";
-                badge.style.color = "#1b5e20";
-            } else {
-                miGrafica.data.datasets[0].backgroundColor = '#fbc02d'; // Regular
-                badge.innerText = "ESTADO: REGULAR";
-                badge.style.backgroundColor = "#fff9c4";
-                badge.style.color = "#f57f17";
+        // ESCUCHA EN TIEMPO REAL DESDE FIRESTORE
+        onSnapshot(doc(db, "seguridad", "semana_actual"), (snap) => {
+            if(snap.exists()) {
+                const score = snap.data().score;
+                chart.data.datasets[0].data = [score];
+                
+                const statusDiv = document.getElementById('status');
+                if(score >= 93) {
+                    chart.data.datasets[0].backgroundColor = '#2e7d32';
+                    statusDiv.innerText = "ESTADO: BUENO";
+                    statusDiv.style.background = "#c8e6c9";
+                } else if(score <= 86) {
+                    chart.data.datasets[0].backgroundColor = '#d32f2f';
+                    statusDiv.innerText = "ESTADO: CRÍTICO";
+                    statusDiv.style.background = "#ffcdd2";
+                } else {
+                    chart.data.datasets[0].backgroundColor = '#fbc02d';
+                    statusDiv.innerText = "ESTADO: REGULAR";
+                    statusDiv.style.background = "#fff9c4";
+                }
+                chart.update();
             }
-            miGrafica.update();
-        }
-    });
-  }
+        });
+    }
 </script>
-
 </body>
 </html>
