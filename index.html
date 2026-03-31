@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Settepi BI | Control Room Local-First</title>
+    <title>Settepi BI | Control Room v5.0</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
@@ -12,25 +12,24 @@
             --inicio-tarde: #b71c1c; --trayecto: #e65100; --bg: #f8fafc;
         }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; color: #1e293b; }
-        
-        /* BARRA DE ACTUALIZACIÓN (Z-INDEX ALTO) */
         #progress-container { position: fixed; top: 0; left: 0; width: 100%; height: 8px; background: rgba(0,0,0,0.1); z-index: 10001; display: none; }
         #progress-bar { height: 100%; width: 0%; background: var(--s-oro); box-shadow: 0 0 20px var(--s-oro); transition: width 0.2s; }
 
         .topbar { background: var(--s-azul); color: white; padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 5px solid var(--s-oro); }
         .filters { background: white; padding: 20px 40px; display: flex; gap: 20px; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 1000; }
-        select { padding: 10px 15px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: bold; color: var(--s-azul); cursor: pointer; }
+        select { padding: 10px 15px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: bold; color: var(--s-azul); }
         .container { padding: 30px 40px; max-width: 1600px; margin: auto; }
+        
         .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 35px; }
         .kpi-card { background: white; padding: 25px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-top: 5px solid var(--s-azul); }
-        .kpi-card h2 { font-size: 36px; margin: 5px 0; color: var(--s-azul); }
-        .chart-box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); height: 450px; margin-bottom: 30px; }
-        .btn { padding: 12px 25px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
-        .btn-oro { background: var(--s-oro); color: var(--s-azul); }
+        
+        .grid-charts { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; margin-bottom: 30px; }
+        .chart-box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); min-height: 400px; }
+        
         .oculto { display: none !important; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; }
-        th { background: var(--s-azul); color: white; padding: 15px; text-align: left; }
-        td { padding: 12px 15px; border-bottom: 1px solid #f1f5f9; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; margin-top: 10px; }
+        th { background: var(--s-azul); color: white; padding: 12px; text-align: left; font-size: 13px; }
+        td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
         .badge-offline { background: #ffeded; color: #b71c1c; padding: 4px 8px; border-radius: 4px; font-size: 10px; margin-left: 10px; border: 1px solid #b71c1c; }
     </style>
 </head>
@@ -38,126 +37,84 @@
 
 <div id="progress-container"><div id="progress-bar"></div></div>
 
-<div id="login-view">
-    <div style="display: flex; height: 100vh; align-items: center; justify-content: center; background: var(--s-azul);">
-        <div style="background:white; padding:50px; border-radius:15px; text-align:center; width: 350px;">
-            <h2 style="color:var(--s-azul)">Settepi BI</h2>
-            <input type="email" id="email" value="n.garcia@settepi.com" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
-            <input type="password" id="pass" placeholder="Password" style="width:100%; padding:12px; margin:10px 0; border:1px solid #ddd; border-radius:8px;">
-            <button class="btn btn-oro" style="width:100%;" onclick="iniciarSesion()">INGRESAR</button>
-        </div>
-    </div>
-</div>
-
-<div id="dashboard-view" class="oculto">
+<div id="dashboard-view">
     <div class="topbar">
         <h2 style="margin:0;">Settepi <span style="color:var(--s-oro)">Control Room</span> <span id="status-tag"></span></h2>
         <div>
-            <button class="btn btn-oro" onclick="document.getElementById('xlInput').click()">📥 CARGAR EXCEL (MODO LOCAL)</button>
+            <button class="btn" style="background:var(--s-oro); color:var(--s-azul); font-weight:bold; padding:10px 20px; border-radius:8px; border:none; cursor:pointer;" onclick="document.getElementById('xlInput').click()">📥 ACTUALIZAR EXCEL (LOCAL)</button>
             <input type="file" id="xlInput" class="oculto">
-            <button class="btn" style="background:rgba(255,255,255,0.1); color:white; margin-left:10px;" onclick="cerrarSesion()">SALIR</button>
         </div>
     </div>
 
     <div class="filters">
-        <select id="sel-periodo" onchange="procesarYRenderizar()"><option value="sem">Por Semana</option><option value="mes">Por Mes</option></select>
-        <select id="sel-bu" onchange="actualizarClientes()"><option value="ALL">Unidad de Negocio</option></select>
-        <select id="sel-grp" onchange="procesarYRenderizar()"><option value="ALL">Cliente</option></select>
+        <select id="sel-periodo" onchange="procesarYRenderizar()"><option value="sem">Semana</option><option value="mes">Mes</option></select>
+        <select id="sel-bu" onchange="actualizarClientes()"><option value="ALL">Todas las BUs</option></select>
+        <select id="sel-grp" onchange="procesarYRenderizar()"><option value="ALL">Todos los Clientes</option></select>
     </div>
 
     <div class="container">
         <div class="kpi-row">
-            <div class="kpi-card"><span>NS General</span><h2 id="k-ns">0%</h2></div>
-            <div class="kpi-card"><span>Viajes Válidos</span><h2 id="k-viajes">0</h2></div>
-            <div class="kpi-card"><span>Retraso Inicio (Rojo)</span><h2 id="k-tarde" style="color:var(--inicio-tarde)">0</h2></div>
-            <div class="kpi-card"><span>Sin Datos (Gris)</span><h2 id="k-noinfo" style="color:var(--no-info)">0</h2></div>
+            <div class="kpi-card"><span>NS General</span><h2 id="k-ns" style="font-size:32px; margin:10px 0;">0%</h2></div>
+            <div class="kpi-card"><span>Viajes Totales</span><h2 id="k-viajes" style="font-size:32px; margin:10px 0;">0</h2></div>
+            <div class="kpi-card"><span>Inicios Tarde</span><h2 id="k-tarde" style="color:var(--inicio-tarde); font-size:32px; margin:10px 0;">0</h2></div>
+            <div class="kpi-card"><span>Sin GPS/ETA</span><h2 id="k-noinfo" style="color:var(--no-info); font-size:32px; margin:10px 0;">0</h2></div>
         </div>
 
-        <div class="chart-box">
-            <h4>ANALISIS DE CUMPLIMIENTO 100% (CRITERIOS SETTEPI)</h4>
-            <canvas id="chartStacked"></canvas>
+        <div class="grid-charts">
+            <div class="chart-box">
+                <h4>CUMPLIMIENTO HISTÓRICO (STACKED)</h4>
+                <canvas id="chartStacked"></canvas>
+            </div>
+            <div class="chart-box">
+                <h4>DISTRIBUCIÓN DE INCIDENCIAS</h4>
+                <canvas id="chartDona"></canvas>
+            </div>
         </div>
 
-        <div class="chart-box" style="height: auto;">
-            <h4>DETALLE POR CLIENTE</h4>
-            <table id="tab-data">
-                <thead><tr id="head-data"></tr></thead>
-                <tbody></tbody>
-            </table>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+            <div class="chart-box" style="height: auto;">
+                <h4>TOP 10 OPERADORES (MÁS INICIOS TARDE)</h4>
+                <table id="tab-ops">
+                    <thead><tr><th>OPERADOR</th><th>FALLAS</th><th>ESTADO</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div class="chart-box" style="height: auto;">
+                <h4>DETALLE POR CLIENTE Y BU</h4>
+                <table id="tab-data">
+                    <thead><tr id="head-data"></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, collection, doc, setDoc, getDocs, writeBatch, query, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    const firebaseConfig = { 
-        apiKey: "AIzaSyC76690rc5SKbN0kFFOOLsa-ua21VJ-8dI", authDomain: "nsusuarios.firebaseapp.com", projectId: "nsusuarios", storageBucket: "nsusuarios.firebasestorage.app", messagingSenderId: "753486575180", appId: "1:753486575180:web:2bb95bf20ac3dafbf626e9" 
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+<script>
     let masterData = [];
     let charts = {};
 
-    onAuthStateChanged(auth, user => {
-        if(user) { 
-            document.getElementById('login-view').classList.add('oculto'); 
-            document.getElementById('dashboard-view').classList.remove('oculto'); 
-            cargarDatosMotorHibrido(); 
-        } else {
-            document.getElementById('login-view').classList.remove('oculto');
-            document.getElementById('dashboard-view').classList.add('oculto');
+    // Cargar datos al iniciar
+    window.onload = () => {
+        const local = localStorage.getItem('settepi_local_db');
+        if(local) {
+            masterData = JSON.parse(local);
+            document.getElementById('status-tag').innerHTML = '<span class="badge-offline">BASE LOCAL CARGADA</span>';
+            llenarBU();
+            procesarYRenderizar();
         }
-    });
-
-    window.iniciarSesion = async () => {
-        try { await signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('pass').value); } catch(e) { alert("Acceso Denegado"); }
     };
-    window.cerrarSesion = () => { localStorage.removeItem('settepi_local_db'); signOut(auth); };
-
-    // --- MOTOR HÍBRIDO: PRIORIDAD LOCAL PARA AHORRO DE CUOTA ---
-    async function cargarDatosMotorHibrido() {
-        const localData = localStorage.getItem('settepi_local_db');
-        
-        if (localData) {
-            console.log("Usando base de datos local (Modo Ahorro Cuota)");
-            masterData = JSON.parse(localData);
-            document.getElementById('status-tag').innerHTML = '<span class="badge-offline">MEMORIA LOCAL ACTIVA</span>';
-            renderizarDashboard();
-        } else {
-            console.log("Consultando Firebase...");
-            try {
-                const q = query(collection(db, "servicios_settepi"), limit(10000));
-                const snap = await getDocs(q);
-                masterData = [];
-                snap.forEach(d => masterData.push(d.data()));
-                if(masterData.length > 0) localStorage.setItem('settepi_local_db', JSON.stringify(masterData));
-                renderizarDashboard();
-            } catch (err) {
-                if(err.message.includes("quota")) alert("Cuota de Firebase Agotada. Sube un archivo Excel para trabajar localmente.");
-            }
-        }
-    }
-
-    function renderizarDashboard() {
-        llenarBU();
-        procesarYRenderizar();
-    }
 
     function llenarBU() {
         const bus = [...new Set(masterData.map(d=>d.bu))].sort();
-        document.getElementById('sel-bu').innerHTML = '<option value="ALL">BUs (Todas)</option>' + bus.map(b=>`<option value="${b}">${b}</option>`).join('');
+        document.getElementById('sel-bu').innerHTML = '<option value="ALL">Todas las BUs</option>' + bus.map(b=>`<option value="${b}">${b}</option>`).join('');
     }
 
     window.actualizarClientes = () => {
         const bu = document.getElementById('sel-bu').value;
         const filtered = bu === 'ALL' ? masterData : masterData.filter(d=>d.bu===bu);
         const grps = [...new Set(filtered.map(d=>d.grp))].sort();
-        document.getElementById('sel-grp').innerHTML = '<option value="ALL">Clientes (Todos)</option>' + grps.map(g=>`<option value="${g}">${g}</option>`).join('');
+        document.getElementById('sel-grp').innerHTML = '<option value="ALL">Todos los Clientes</option>' + grps.map(g=>`<option value="${g}">${g}</option>`).join('');
         procesarYRenderizar();
     }
 
@@ -176,20 +133,22 @@
         document.getElementById('k-noinfo').innerText = data.filter(d => d.noInfo).length;
 
         renderStackedChart(validos, pKey);
+        renderDonaChart(data);
+        renderTopOperadores(validos);
         renderTable(validos, pKey);
     };
 
     function renderStackedChart(data, pKey) {
-        const periodos = [...new Set(data.map(d => d[pKey]))].sort((a,b)=>a-b).slice(-10);
+        const periodos = [...new Set(data.map(d => d[pKey]))].sort((a,b)=>a-b).slice(-8);
         const sets = { ok: [], it: [], pt: [], ni: [] };
 
         periodos.forEach(p => {
             const s = data.filter(x => x[pKey] === p);
             const t = s.length || 1;
             sets.ok.push(((s.filter(x => x.latL <= 4 && x.latI <= 0 && !x.noInfo).length / t) * 100).toFixed(1));
-            sets.it.push(((s.filter(x => x.latI > 0 && !x.noInfo).length / t) * 100).toFixed(1)); // Rojo
-            sets.pt.push(((s.filter(x => x.latL > 4 && x.latI <= 0 && !x.noInfo).length / t) * 100).toFixed(1)); // Naranja
-            sets.ni.push(((s.filter(x => x.noInfo).length / t) * 100).toFixed(1)); // Gris
+            sets.it.push(((s.filter(x => x.latI > 0 && !x.noInfo).length / t) * 100).toFixed(1)); 
+            sets.pt.push(((s.filter(x => x.latL > 4 && x.latI <= 0 && !x.noInfo).length / t) * 100).toFixed(1)); 
+            sets.ni.push(((s.filter(x => x.noInfo).length / t) * 100).toFixed(1)); 
         });
 
         if(charts.stack) charts.stack.destroy();
@@ -198,76 +157,90 @@
             data: {
                 labels: periodos.map(p => (pKey==='sem'?'S':'M')+p),
                 datasets: [
-                    { label: 'Todo OK (Azul)', data: sets.ok, backgroundColor: '#0056b3' },
-                    { label: 'Inicio Tarde (Rojo)', data: sets.it, backgroundColor: '#b71c1c' },
-                    { label: 'Trayecto (Naranja)', data: sets.pt, backgroundColor: '#e65100' },
-                    { label: 'Sin Info (Gris)', data: sets.ni, backgroundColor: '#9e9e9e' }
+                    { label: 'OK', data: sets.ok, backgroundColor: '#0056b3' },
+                    { label: 'Tarde', data: sets.it, backgroundColor: '#b71c1c' },
+                    { label: 'Trayecto', data: sets.pt, backgroundColor: '#e65100' },
+                    { label: 'S/I', data: sets.ni, backgroundColor: '#9e9e9e' }
                 ]
             },
             options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, max: 100 } } }
         });
     }
 
+    function renderDonaChart(data) {
+        const sI = data.filter(d => d.noInfo).length;
+        const tarde = data.filter(d => d.latI > 0 && !d.noInfo).length;
+        const trayecto = data.filter(d => d.latL > 4 && d.latI <= 0 && !d.noInfo).length;
+        const ok = data.length - (sI + tarde + trayecto);
+
+        if(charts.dona) charts.dona.destroy();
+        charts.dona = new Chart(document.getElementById('chartDona'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Todo OK', 'Inicio Tarde', 'Retraso Trayecto', 'Sin Info'],
+                datasets: [{ data: [ok, tarde, trayecto, sI], backgroundColor: ['#0056b3', '#b71c1c', '#e65100', '#9e9e9e'] }]
+            },
+            options: { plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+
+    function renderTopOperadores(data) {
+        const fallas = {};
+        data.filter(d => d.latI > 0).forEach(d => {
+            const op = d.op || "Desconocido";
+            fallas[op] = (fallas[op] || 0) + 1;
+        });
+
+        const sorted = Object.entries(fallas).sort((a,b) => b[1] - a[1]).slice(0, 10);
+        document.querySelector('#tab-ops tbody').innerHTML = sorted.map(o => `
+            <tr><td>${o[0]}</td><td><b>${o[1]}</b></td><td>⚠️ Crítico</td></tr>
+        `).join('');
+    }
+
     function renderTable(data, pKey) {
-        const periodos = [...new Set(data.map(d => d[pKey]))].sort((a,b)=>a-b).slice(-5);
-        const grps = [...new Set(data.map(d => d.grp))].sort().slice(0, 15);
-        document.getElementById('head-data').innerHTML = `<th>CLIENTE</th>` + periodos.map(p => `<th>${pKey==='sem'?'S':'M'}${p}</th>`).join('');
-        document.querySelector('#tab-data tbody').innerHTML = grps.map(g => {
+        const periodos = [...new Set(data.map(d => d[pKey]))].sort((a,b)=>a-b).slice(-4);
+        const uniqueRows = [...new Set(data.map(d => `${d.bu}|${d.grp}`))].sort().slice(0, 20);
+        
+        document.getElementById('head-data').innerHTML = `<th>BU</th><th>CLIENTE</th>` + periodos.map(p => `<th>${pKey==='sem'?'S':'M'}${p}</th>`).join('');
+        
+        document.querySelector('#tab-data tbody').innerHTML = uniqueRows.map(row => {
+            const [bu, grp] = row.split('|');
             const cells = periodos.map(p => {
-                const s = data.filter(x => x.grp === g && x[pKey] === p);
+                const s = data.filter(x => x.bu === bu && x.grp === grp && x[pKey] === p);
                 if(!s.length) return '<td>-</td>';
                 const ns = (1 - s.filter(x=>x.latL>4).length/s.length)*100;
-                return `<td style="color:${ns < 90 ? '#b71c1c' : '#0056b3'}; font-weight:bold;">${ns.toFixed(1)}%</td>`;
+                return `<td style="color:${ns < 90 ? '#b71c1c' : '#0056b3'}; font-weight:bold;">${ns.toFixed(0)}%</td>`;
             }).join('');
-            return `<tr><td>${g}</td>${cells}</tr>`;
+            return `<tr><td>${bu}</td><td>${grp}</td>${cells}</tr>`;
         }).join('');
     }
 
-    // --- LECTOR DE EXCEL CON FALLBACK DE CUOTA ---
-    document.getElementById('xlInput').addEventListener('change', async (e) => {
+    document.getElementById('xlInput').addEventListener('change', (e) => {
         const file = e.target.files[0];
         const reader = new FileReader();
-        reader.onload = async (evt) => {
+        reader.onload = (evt) => {
             const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
             const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
             
             document.getElementById('progress-container').style.display = 'block';
-            const pBar = document.getElementById('progress-bar');
-            
-            let batch = writeBatch(db);
             let localBuffer = [];
 
-            for (let i = 0; i < json.length; i++) {
-                const r = json[i];
+            json.forEach((r, i) => {
                 const toM = (v) => { if(!v) return null; if(typeof v === 'number') return v * 1440; const p = String(v).split(':'); return parseInt(p[0])*60 + parseInt(p[1]||0); };
-                
-                const status = parseInt(r['status']);
-                const tipoEstado = ([6,7,8].includes(status) && ["N","V"].includes(r['Tipo de Viaje'])) ? 1 : 0;
-                const retrasoValido = (r['shift'] === "IN" && r['record_quality'] == 1 && tipoEstado == 1) ? 1 : 0;
-                const noInfo = !r['end_eta'] || r['end_eta'] === "";
-
-                const dObj = {
+                const noInfo = !r['end_eta'];
+                localBuffer.push({
                     bu: r['business_unit'] || 'N/A',
                     grp: r['group'] || r['Cliente'] || 'N/A',
-                    sem: parseInt(r['Sem Via'] || r['Semana'] || 0),
-                    mes: parseInt(r['Mes'] || 1),
+                    op: r['operator'] || r['Operador'] || 'N/A',
+                    sem: parseInt(r['Semana'] || 0),
+                    mes: parseInt(r['Mes'] || 0),
                     latL: noInfo ? 999 : Math.round(toM(r['end_eta']) - toM(r['end_time'])),
                     latI: noInfo ? 0 : Math.round(toM(r['start_eta']) - toM(r['start_time'])),
-                    noInfo, valRet: (retrasoValido === 1)
-                };
+                    noInfo,
+                    valRet: (r['shift'] === "IN" && [6,7,8].includes(parseInt(r['status'])))
+                });
+            });
 
-                localBuffer.push(dObj);
-                // Intentamos preparar el lote para Firebase
-                try { batch.set(doc(collection(db, "servicios_settepi")), dObj); } catch(e){}
-
-                if (i % 400 === 0 || i === json.length - 1) {
-                    pBar.style.width = ((i / json.length) * 100) + '%';
-                    try { await batch.commit(); batch = writeBatch(db); } catch(err) {
-                        console.warn("Falla de cuota detectada, continuando en modo local...");
-                    }
-                }
-            }
-            // CRUCIAL: Aunque Firebase falle, guardamos en el navegador
             localStorage.setItem('settepi_local_db', JSON.stringify(localBuffer));
             location.reload();
         };
